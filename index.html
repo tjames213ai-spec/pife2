@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pife - 北欧風タイム＆アクティビティトラッカー</title>
+
+  <!-- iOS / Safari 向け最適化設定 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Pife">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            nordic: {
+              bg: '#F8F6F0',          // ウォームホワイト / アイボリー
+              card: '#FFFFFF',        // カード背景
+              text: '#374151',        // ディープグレー
+              muted: '#788697',       // ニュアンスグレー
+              sage: '#8A9A86',        // セージグリーン（プライマリ）
+              sageDark: '#6E7E6A',
+              terracotta: '#D98A6C',  // テラコッタアクセント
+              sand: '#EFECE6',        // 薄いサンドベージュ
+              sky: '#B2C8D7',         // 北欧ブルー
+            }
+          },
+          fontFamily: {
+            sans: ['"Zen Maru Gothic"', '"Plus Jakarta Sans"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #F8F6F0;
+      color: #374151;
+      -webkit-tap-highlight-color: transparent;
+    }
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F8F6F0;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D1D5DB;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased min-h-screen pb-12 selection:bg-nordic-sage selection:text-white bg-neutral-200">
+
+  <div class="max-w-[430px] mx-auto bg-nordic-bg min-h-screen shadow-2xl relative overflow-x-hidden border-x border-nordic-sand/60">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 bg-nordic-bg/90 backdrop-blur-md border-b border-nordic-sand/80 px-4 py-3 sm:px-8">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-2xl bg-nordic-sage flex items-center justify-center text-white shadow-sm ring-2 ring-white">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L7 9h3l-4 7h5v5h2v-5h5l-4-7h3z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-wide text-nordic-text">Pife</h1>
+          <p class="text-xs text-nordic-muted">Nordic Activity & Time Tracker</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button onclick="openSettingsModal()" aria-label="設定を開く" class="p-2.5 rounded-xl bg-white text-nordic-muted hover:text-nordic-text hover:bg-nordic-sand transition-all shadow-sm border border-nordic-sand flex items-center space-x-1">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="max-w-4xl mx-auto px-4 pt-6 space-y-6">
+
+    <div class="bg-white rounded-3xl p-4 shadow-sm border border-nordic-sand flex flex-col items-center justify-between gap-3">
+      <div class="flex items-center space-x-3 w-full">
+        <div class="p-2 bg-nordic-sand/60 rounded-xl text-nordic-sage">
+          <i data-lucide="calendar" class="w-5 h-5"></i>
+        </div>
+        <div class="flex-1">
+          <span class="text-[11px] text-nordic-muted font-medium block">現在の集計対象年度</span>
+          <span id="currentYearRangeLabel" class="text-xs font-semibold text-nordic-text">----年--月 〜 ----年--月</span>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 w-full justify-between pt-2 border-t border-nordic-sand/50">
+        <button onclick="changeMonth(-1)" aria-label="前月へ移動" class="p-2.5 rounded-2xl bg-nordic-bg hover:bg-nordic-sand text-nordic-text transition-colors shadow-sm">
+          <i data-lucide="chevron-left" class="w-5 h-5"></i>
+        </button>
+        
+        <div class="relative flex items-center justify-center bg-nordic-bg px-4 py-2 rounded-2xl border border-nordic-sand/80 shadow-inner group">
+          <span id="displaySelectedMonthText" class="text-xl font-extrabold text-nordic-text tracking-wide pointer-events-none">----年 --月</span>
+          <input type="month" id="monthPicker" aria-label="対象年月を選択" onchange="onMonthPickerChange(this.value)" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
+          <i data-lucide="calendar-days" class="w-4 h-4 text-nordic-muted ml-2 group-hover:text-nordic-sage transition-colors"></i>
+        </div>
+
+        <button onclick="changeMonth(1)" aria-label="次月へ移動" class="p-2.5 rounded-2xl bg-nordic-bg hover:bg-nordic-sand text-nordic-text transition-colors shadow-sm">
+          <i data-lucide="chevron-right" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4">
+      <div class="bg-gradient-to-br from-nordic-sage/10 to-nordic-sage/20 rounded-3xl p-5 border border-nordic-sage/20 relative overflow-hidden flex flex-col justify-between">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-semibold uppercase tracking-wider text-nordic-sageDark">Annual Goal</span>
+              <span id="startMonthBadge" class="text-[10px] bg-white/80 text-nordic-sageDark px-2 py-0.5 rounded-full font-bold shadow-xs">9月起算</span>
+            </div>
+            <div class="flex items-center space-x-1.5 mt-0.5">
+              <h3 class="text-lg font-bold text-nordic-text">年間目標 (<span id="annualGoalHoursHeader">600</span>h)</h3>
+              <button onclick="openGoalEditModal()" title="年間目標時間と集計月を編集" class="text-nordic-sageDark hover:text-nordic-text p-1.5 bg-white/60 hover:bg-white rounded-xl transition-all">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div class="p-2 bg-white/80 rounded-2xl text-nordic-sage shadow-sm">
+            <i data-lucide="target" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <div class="my-4">
+          <div class="flex items-baseline space-x-1">
+            <span id="yearlyTotalHours" class="text-3xl font-extrabold text-nordic-text">0.0</span>
+            <span class="text-sm font-medium text-nordic-muted">/ <span id="effectiveGoalHoursLabel">600.0</span> 時間</span>
+          </div>
+          <p class="text-[11px] text-nordic-muted mt-0.5" id="effectiveGoalNotice">（標準目標: 600時間）</p>
+          <div class="w-full bg-white/60 h-2.5 rounded-full mt-2 overflow-hidden">
+            <div id="yearlyProgressBar" class="bg-nordic-sage h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="space-y-1 text-xs text-nordic-muted pt-2 border-t border-nordic-sage/15">
+          <div class="flex justify-between">
+            <span>目標まで残り:</span>
+            <span id="remainingHoursLabel" class="font-bold text-nordic-text">600.0 時間</span>
+          </div>
+          <div class="flex justify-between items-center text-[11px] text-nordic-muted">
+            <span>（考慮時間 マイナス分）:</span>
+            <span id="yearlyConsiderationHoursLabel" class="font-semibold text-nordic-terracotta">-0.0 時間</span>
+          </div>
+          <div class="flex justify-between pt-1 border-t border-nordic-sage/10">
+            <span id="monthlyRequiredPaceTitle">達成に必要な月平均:</span>
+            <span id="monthlyRequiredPaceLabel" class="font-bold text-nordic-terracotta">50.0 時間/月</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl p-5 border border-nordic-sand shadow-sm space-y-4">
+      <div class="flex items-center space-x-2 border-b border-nordic-sand pb-3">
+        <div class="p-2 bg-nordic-sage/10 rounded-xl text-nordic-sage">
+          <i data-lucide="plus-circle" class="w-5 h-5"></i>
+        </div>
+        <h3 class="font-bold text-base text-nordic-text">時間の記録</h3>
+      </div>
+
+      <form id="logEntryForm" onsubmit="handleFormSubmit(event)" class="space-y-3">
+        <div class="grid grid-cols-1 gap-2">
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">日付</label>
+            <input type="date" id="inputDate" required class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">開始時間</label>
+            <input type="time" id="inputStartTime" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">終了時間</label>
+            <input type="time" id="inputEndTime" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">再訪問数</label>
+            <select id="inputRevisit" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+              <option value="0">0件</option>
+              <option value="1">1件</option>
+              <option value="2">2件</option>
+              <option value="3">3件</option>
+              <option value="4">4件</option>
+              <option value="5">5件</option>
+              <option value="6">6件</option>
+              <option value="7">7件</option>
+              <option value="8">8件</option>
+              <option value="9">9件</option>
+              <option value="10">10件</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">レッスン数</label>
+            <select id="inputLesson" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+              <option value="0">0件</option>
+              <option value="1">1件</option>
+              <option value="2">2件</option>
+              <option value="3">3件</option>
+              <option value="4">4件</option>
+              <option value="5">5件</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-nordic-sand/60">
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">イレギュラー</label>
+            <select id="inputIrregularType" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+              <option value="none">なし</option>
+              <option value="consider">考慮</option>
+              <option value="add">追加</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">イレギュラー時間 (h)</label>
+            <input type="number" id="inputIrregularHours" step="0.1" min="0" max="24" placeholder="0.0" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-nordic-sage hover:bg-nordic-sageDark text-white font-bold py-2.5 rounded-2xl text-xs transition-all shadow-sm flex items-center justify-center space-x-1.5 pt-2">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>記録を登録する</span>
+        </button>
+      </form>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4">
+      <div class="bg-white rounded-3xl p-5 border border-nordic-sand shadow-sm flex flex-col justify-between">
+        <div class="flex items-start justify-between">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-nordic-muted">Monthly Summary</span>
+            <h3 id="selectedMonthTitle" class="text-lg font-bold text-nordic-text mt-0.5">--月 集計</h3>
+          </div>
+          <div class="p-2 bg-nordic-sand/50 rounded-2xl text-nordic-terracotta">
+            <i data-lucide="clock" class="w-5 h-5"></i>
+          </div>
+        </div>
+
+        <div class="my-3 space-y-3">
+          <div class="flex justify-between items-baseline">
+            <span class="text-xs text-nordic-muted">合計時間</span>
+            <span class="text-2xl font-bold text-nordic-text" id="monthlyTotalHours">0.0 <span class="text-xs font-normal">時間</span></span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-nordic-sand">
+            <div class="bg-nordic-bg p-2.5 rounded-2xl text-center">
+              <span class="text-[10px] text-nordic-muted block">再訪問数</span>
+              <span class="text-lg font-bold text-nordic-sage" id="monthlyRevisits">0 <span class="text-xs font-normal">回</span></span>
+            </div>
+            <div class="bg-nordic-bg p-2.5 rounded-2xl text-center">
+              <span class="text-[10px] text-nordic-muted block">レッスン数</span>
+              <span class="text-lg font-bold text-slate-700" id="monthlyLessons">0 <span class="text-xs font-normal">回</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Goal & Daily Calendar -->
+    <div class="bg-white rounded-3xl p-5 border border-nordic-sand shadow-sm space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="compass" class="w-5 h-5 text-nordic-terracotta"></i>
+          <h3 id="monthlyGoalHeading" class="font-bold text-nordic-text text-base">今月の目標</h3>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <input type="text" id="monthlyGoalInput" placeholder="今月のテーマや目標を入力..." 
+               class="w-full bg-nordic-bg border-0 rounded-2xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-nordic-sage outline-none">
+        <button onclick="saveMonthlyGoal()" class="w-full bg-nordic-sage hover:bg-nordic-sageDark text-white font-medium py-2 rounded-2xl text-xs transition-all shadow-sm">
+          目標テキストを保存
+        </button>
+      </div>
+
+      <div class="pt-3 border-t border-nordic-sand space-y-3">
+        <div class="bg-nordic-bg p-3.5 rounded-2xl flex items-center justify-between">
+          <div>
+            <span class="text-[11px] font-semibold text-nordic-muted block">今月の着地見込み</span>
+            <p class="text-[10px] text-nordic-muted">実績 + 目標予定時間の合計</p>
+          </div>
+          <div class="text-right">
+            <span id="projectedMonthlyTotal" class="text-xl font-extrabold text-nordic-sage">0.0 <span class="text-xs font-normal text-nordic-text">時間</span></span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-nordic-text">日別目標時間 カレンダー</span>
+            <span class="text-[10px] text-nordic-muted">数値は直接編集可能です</span>
+          </div>
+          <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-nordic-muted mb-1">
+            <div>月</div>
+            <div>火</div>
+            <div>水</div>
+            <div>木</div>
+            <div>金</div>
+            <div class="text-blue-400">土</div>
+            <div class="text-red-400">日</div>
+          </div>
+          <div id="monthlyCalendarGrid" class="grid grid-cols-7 gap-1.5"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl p-6 border border-nordic-sand shadow-sm space-y-4">
+      <div class="flex items-center justify-between border-b border-nordic-sand pb-3">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="list" class="w-5 h-5 text-nordic-sage"></i>
+          <h3 class="text-lg font-bold text-nordic-text"><span id="listMonthLabel">--月</span> の記録一覧</h3>
+        </div>
+        <span class="text-xs text-nordic-muted" id="entryCountLabel">全 0 件</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[340px]">
+          <thead>
+            <tr class="text-[11px] font-semibold text-nordic-muted uppercase border-b border-nordic-sand">
+              <th class="py-2 px-2">日付/時間</th>
+              <th class="py-2 px-2 text-center">合計</th>
+              <th class="py-2 px-1 text-center">再訪/L</th>
+              <th class="py-2 px-2">イレギュラー</th>
+              <th class="py-2 px-1 text-right">操作</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody" class="divide-y divide-nordic-sand text-sm"></tbody>
+        </table>
+      </div>
+
+      <div id="noLogsMessage" class="py-12 text-center text-nordic-muted text-sm space-y-2">
+        <i data-lucide="feather" class="w-8 h-8 mx-auto opacity-40"></i>
+        <p>この月の記録はまだありません。</p>
+      </div>
+    </div>
+
+  </main>
+  </div>
+
+  <div id="goalEditModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-xs w-full p-6 space-y-4 border border-nordic-sand shadow-xl">
+      <div class="flex items-center justify-between border-b border-nordic-sand pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="p-2 bg-nordic-sage/10 rounded-xl text-nordic-sage">
+            <i data-lucide="target" class="w-5 h-5"></i>
+          </div>
+          <h3 class="font-bold text-base text-nordic-text">年間目標・集計設定</h3>
+        </div>
+        <button onclick="closeGoalEditModal()" aria-label="モーダルを閉じる" class="text-nordic-muted hover:text-nordic-text p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-[11px] font-semibold text-nordic-muted block mb-1">年間目標時間 (時間)</label>
+          <input type="number" id="annualGoalInput" min="1" step="1" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-sm font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">集計開始月</label>
+            <select id="startMonthSelect" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+              <option value="1">1月</option>
+              <option value="2">2月</option>
+              <option value="3">3月</option>
+              <option value="4">4月</option>
+              <option value="5">5月</option>
+              <option value="6">6月</option>
+              <option value="7">7月</option>
+              <option value="8">8月</option>
+              <option value="9">9月</option>
+              <option value="10">10月</option>
+              <option value="11">11月</option>
+              <option value="12">12月</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">集計終了月</label>
+            <select id="endMonthSelect" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+              <option value="1">1月</option>
+              <option value="2">2月</option>
+              <option value="3">3月</option>
+              <option value="4">4月</option>
+              <option value="5">5月</option>
+              <option value="6">6月</option>
+              <option value="7">7月</option>
+              <option value="8">8月</option>
+              <option value="9">9月</option>
+              <option value="10">10月</option>
+              <option value="11">11月</option>
+              <option value="12">12月</option>
+            </select>
+          </div>
+        </div>
+        <p class="text-[10px] text-nordic-muted">※例: 11月開始〜8月終了に設定すると全10ヶ月間として計算されます。</p>
+      </div>
+
+      <div class="flex space-x-2 pt-2">
+        <button type="button" onclick="closeGoalEditModal()" class="flex-1 bg-nordic-sand text-nordic-text font-bold py-2.5 rounded-2xl text-xs transition-colors">
+          キャンセル
+        </button>
+        <button type="button" onclick="saveAnnualGoalSetting()" class="flex-1 bg-nordic-sage hover:bg-nordic-sageDark text-white font-bold py-2.5 rounded-2xl text-xs transition-colors shadow-sm">
+          保存
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="logEditModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 border border-nordic-sand shadow-xl">
+      <div class="flex items-center justify-between border-b border-nordic-sand pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="p-2 bg-nordic-sage/10 rounded-xl text-nordic-sage">
+            <i data-lucide="edit-3" class="w-5 h-5"></i>
+          </div>
+          <h3 class="font-bold text-base text-nordic-text">記録の編集</h3>
+        </div>
+        <button onclick="closeLogEditModal()" aria-label="モーダルを閉じる" class="text-nordic-muted hover:text-nordic-text p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="editLogForm" onsubmit="handleEditFormSubmit(event)" class="space-y-3">
+        <input type="hidden" id="editLogId">
+        
+        <div>
+          <label class="text-[11px] font-semibold text-nordic-muted block mb-1">日付</label>
+          <input type="date" id="editInputDate" required class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">開始時間</label>
+            <input type="time" id="editInputStartTime" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">終了時間</label>
+            <input type="time" id="editInputEndTime" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">再訪問数</label>
+            <select id="editInputRevisit" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+              <option value="0">0件</option>
+              <option value="1">1件</option>
+              <option value="2">2件</option>
+              <option value="3">3件</option>
+              <option value="4">4件</option>
+              <option value="5">5件</option>
+              <option value="6">6件</option>
+              <option value="7">7件</option>
+              <option value="8">8件</option>
+              <option value="9">9件</option>
+              <option value="10">10件</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">レッスン数</label>
+            <select id="editInputLesson" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+              <option value="0">0件</option>
+              <option value="1">1件</option>
+              <option value="2">2件</option>
+              <option value="3">3件</option>
+              <option value="4">4件</option>
+              <option value="5">5件</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-nordic-sand/60">
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">イレギュラー</label>
+            <select id="editInputIrregularType" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+              <option value="none">なし</option>
+              <option value="consider">考慮</option>
+              <option value="add">追加</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-nordic-muted block mb-1">イレギュラー時間 (h)</label>
+            <input type="number" id="editInputIrregularHours" step="0.1" min="0" max="24" placeholder="0.0" class="w-full bg-nordic-bg border-0 rounded-2xl px-3 py-2 text-xs font-bold text-nordic-text outline-none focus:ring-2 focus:ring-nordic-sage">
+          </div>
+        </div>
+
+        <div class="flex space-x-2 pt-3 border-t border-nordic-sand/80">
+          <button type="button" onclick="confirmDeleteFromEditModal()" class="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-2.5 rounded-2xl text-xs transition-colors flex items-center justify-center space-x-1">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            <span>削除</span>
+          </button>
+          <button type="button" onclick="closeLogEditModal()" class="flex-1 bg-nordic-sand text-nordic-text font-bold py-2.5 rounded-2xl text-xs transition-colors">
+            キャンセル
+          </button>
+          <button type="submit" class="flex-1 bg-nordic-sage hover:bg-nordic-sageDark text-white font-bold py-2.5 rounded-2xl text-xs transition-colors shadow-sm">
+            保存
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 確認画面用カスタムモーダル (alert/confirmの完全回避) -->
+  <div id="confirmModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-xs w-full p-6 space-y-4 border border-nordic-sand shadow-xl text-center">
+      <div class="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto">
+        <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h4 id="confirmTitle" class="font-bold text-base text-nordic-text">確認</h4>
+        <p id="confirmMessage" class="text-xs text-nordic-muted mt-1">本当に実行しますか？</p>
+      </div>
+      <div class="flex space-x-2 pt-2">
+        <button id="confirmCancelBtn" type="button" class="flex-1 bg-nordic-sand text-nordic-text font-bold py-2.5 rounded-2xl text-xs transition-colors">
+          キャンセル
+        </button>
+        <button id="confirmOkBtn" type="button" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-2.5 rounded-2xl text-xs transition-colors shadow-sm">
+          実行
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 border border-nordic-sand shadow-xl">
+      <div class="flex items-center justify-between border-b border-nordic-sand pb-3">
+        <div class="flex items-center space-x-2">
+          <div class="p-2 bg-nordic-sand/60 rounded-xl text-nordic-text">
+            <i data-lucide="settings" class="w-5 h-5 text-nordic-terracotta"></i>
+          </div>
+          <h3 class="font-bold text-lg text-nordic-text">設定 & データ管理</h3>
+        </div>
+        <button onclick="closeSettingsModal()" aria-label="モーダルを閉じる" class="text-nordic-muted hover:text-nordic-text p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div class="space-y-2">
+          <h4 class="text-xs font-bold text-nordic-muted uppercase tracking-wider">データ管理</h4>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="exportData()" class="bg-nordic-sand hover:bg-nordic-sand/80 text-nordic-text font-medium py-2.5 px-3 rounded-2xl text-xs flex items-center justify-center space-x-1.5 transition-colors">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>ファイル保存</span>
+            </button>
+            <label class="bg-nordic-sand hover:bg-nordic-sand/80 text-nordic-text font-medium py-2.5 px-3 rounded-2xl text-xs flex items-center justify-center space-x-1.5 transition-colors cursor-pointer">
+              <i data-lucide="upload" class="w-4 h-4"></i>
+              <span>ファイル読み込み</span>
+              <input type="file" id="importFileInput" accept=".json" onchange="importData(event)" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-nordic-sand flex justify-between items-center">
+          <span class="text-xs text-nordic-muted">全データ初期化</span>
+          <button onclick="clearAllData()" class="text-xs text-red-500 font-bold hover:underline">データをクリア</button>
+        </div>
+      </div>
+
+      <button onclick="closeSettingsModal()" class="w-full bg-nordic-sage text-white font-bold py-3 rounded-2xl text-sm transition-colors">
+        閉じる
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const APP_STORAGE_KEY = 'pife_app_data_v1';
+    let appData = {
+      annualGoal: 600,
+      startMonth: 9,
+      endMonth: 8,
+      monthlyGoals: {},
+      dailyGoalHours: {},
+      logs: []
+    };
+
+    let currentSelectedMonth = '';
+    let pendingConfirmAction = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStoredData();
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+      const todayDate = `${currentYear}-${currentMonth}-${String(now.getDate()).padStart(2, '0')}`;
+
+      currentSelectedMonth = `${currentYear}-${currentMonth}`;
+
+      const monthPicker = document.getElementById('monthPicker');
+      if (monthPicker) monthPicker.value = currentSelectedMonth;
+
+      const inputDate = document.getElementById('inputDate');
+      if (inputDate) inputDate.value = todayDate;
+
+      if (window.lucide) lucide.createIcons();
+      renderApp();
+    });
+
+    function loadStoredData() {
+      try {
+        const saved = localStorage.getItem(APP_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          appData = { ...appData, ...parsed };
+        }
+      } catch (e) {
+        console.error('Failed to load storage data', e);
+      }
+    }
+
+    function saveData() {
+      try {
+        localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(appData));
+      } catch (e) {
+        console.error('Failed to save storage data', e);
+      }
+    }
+
+    // 会計年度の総月数を計算 (同月開始・終了にも対応)
+    function getTotalFiscalMonths(startM = appData.startMonth || 9, endM = appData.endMonth) {
+      if (!endM) {
+        endM = (startM === 1) ? 12 : startM - 1;
+      }
+      if (startM === endM) return 1;
+      return (endM - startM + 12) % 12 + 1;
+    }
+
+    function getMonthIndexInFiscalYear(yearMonthStr, startM = appData.startMonth || 9, endM = appData.endMonth) {
+      if (!yearMonthStr) return -1;
+      const parts = yearMonthStr.split('-');
+      if (parts.length < 2) return -1;
+      const m = parseInt(parts[1], 10);
+
+      const totalMonths = getTotalFiscalMonths(startM, endM);
+      const indexFromStart = (m - startM + 12) % 12 + 1;
+
+      if (indexFromStart <= totalMonths) {
+        return indexFromStart;
+      }
+      return -1;
+    }
+
+    function getFiscalYear(yearMonthStr, startM = appData.startMonth || 9, endM = appData.endMonth) {
+      if (!yearMonthStr) return new Date().getFullYear();
+      const parts = yearMonthStr.split('-');
+      if (parts.length < 2) return new Date().getFullYear();
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+
+      const monthIndex = getMonthIndexInFiscalYear(yearMonthStr, startM, endM);
+      if (monthIndex !== -1) {
+        return m >= startM ? y : y - 1;
+      }
+      return m >= startM ? y : y - 1;
+    }
+
+    function renderApp() {
+      if (!currentSelectedMonth) {
+        const now = new Date();
+        currentSelectedMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      }
+
+      const [yStr, mStr] = currentSelectedMonth.split('-');
+      const selectedYear = parseInt(yStr, 10);
+      const selectedMonth = parseInt(mStr, 10);
+
+      const startM = appData.startMonth || 9;
+      let endM = appData.endMonth;
+      if (!endM) {
+        endM = (startM === 1) ? 12 : (startM - 1 === 0 ? 12 : startM - 1);
+      }
+
+      const fiscalYear = getFiscalYear(currentSelectedMonth, startM, endM);
+      let endYear = fiscalYear;
+      if (endM < startM) {
+        endYear = fiscalYear + 1;
+      }
+
+      // 年度ラベルと月ヘッダーの更新
+      const yearRangeLabel = document.getElementById('currentYearRangeLabel');
+      if (yearRangeLabel) {
+        yearRangeLabel.textContent = `${fiscalYear}年${startM}月 〜 ${endYear}年${endM}月`;
+      }
+
+      const displaySelectedMonthText = document.getElementById('displaySelectedMonthText');
+      if (displaySelectedMonthText) {
+        displaySelectedMonthText.textContent = `${selectedYear}年 ${selectedMonth}月`;
+      }
+
+      const monthPicker = document.getElementById('monthPicker');
+      if (monthPicker) {
+        monthPicker.value = currentSelectedMonth;
+      }
+
+      const selectedMonthTitle = document.getElementById('selectedMonthTitle');
+      if (selectedMonthTitle) {
+        selectedMonthTitle.textContent = `${selectedMonth}月 集計`;
+      }
+
+      const listMonthLabel = document.getElementById('listMonthLabel');
+      if (listMonthLabel) {
+        listMonthLabel.textContent = `${selectedMonth}月`;
+      }
+
+      const startMonthBadge = document.getElementById('startMonthBadge');
+      if (startMonthBadge) {
+        startMonthBadge.textContent = `${startM}月起算`;
+      }
+
+      const annualGoalHoursHeader = document.getElementById('annualGoalHoursHeader');
+      if (annualGoalHoursHeader) {
+        annualGoalHoursHeader.textContent = appData.annualGoal || 600;
+      }
+
+      // 年度内の全ログ抽出と集計
+      const fiscalLogs = (appData.logs || []).filter(log => {
+        if (!log.date) return false;
+        const logYM = log.date.substring(0, 7);
+        const logFY = getFiscalYear(logYM, startM, endM);
+        const logMIndex = getMonthIndexInFiscalYear(logYM, startM, endM);
+        return logFY === fiscalYear && logMIndex !== -1;
+      });
+
+      let yearlyTotal = 0;
+      let yearlyConsideration = 0;
+
+      fiscalLogs.forEach(log => {
+        yearlyTotal += (log.hours || 0);
+        if (log.irregularType === 'consider') {
+          yearlyConsideration += (log.irregularHours || 0);
+        }
+      });
+
+      const effectiveGoal = Math.max(0, (appData.annualGoal || 600) - yearlyConsideration);
+      const remaining = Math.max(0, effectiveGoal - yearlyTotal);
+
+      const yearlyTotalHoursEl = document.getElementById('yearlyTotalHours');
+      if (yearlyTotalHoursEl) yearlyTotalHoursEl.textContent = yearlyTotal.toFixed(1);
+
+      const effectiveGoalHoursLabel = document.getElementById('effectiveGoalHoursLabel');
+      if (effectiveGoalHoursLabel) effectiveGoalHoursLabel.textContent = effectiveGoal.toFixed(1);
+
+      const yearlyConsiderationHoursLabel = document.getElementById('yearlyConsiderationHoursLabel');
+      if (yearlyConsiderationHoursLabel) yearlyConsiderationHoursLabel.textContent = `-${yearlyConsideration.toFixed(1)} 時間`;
+
+      const remainingHoursLabel = document.getElementById('remainingHoursLabel');
+      if (remainingHoursLabel) remainingHoursLabel.textContent = `${remaining.toFixed(1)} 時間`;
+
+      const yearlyProgressBar = document.getElementById('yearlyProgressBar');
+      if (yearlyProgressBar) {
+        const progressPct = effectiveGoal > 0 ? Math.min(100, (yearlyTotal / effectiveGoal) * 100) : 0;
+        yearlyProgressBar.style.width = `${progressPct}%`;
+      }
+
+      const currentMIndex = getMonthIndexInFiscalYear(currentSelectedMonth, startM, endM);
+      const totalFiscalMonths = getTotalFiscalMonths(startM, endM);
+      const remainingMonths = currentMIndex !== -1 ? Math.max(1, totalFiscalMonths - currentMIndex + 1) : totalFiscalMonths;
+      const requiredPace = remaining / remainingMonths;
+
+      const monthlyRequiredPaceLabel = document.getElementById('monthlyRequiredPaceLabel');
+      if (monthlyRequiredPaceLabel) {
+        monthlyRequiredPaceLabel.textContent = `${requiredPace.toFixed(1)} 時間/月`;
+      }
+
+      // 当月データの集計
+      const monthlyLogs = (appData.logs || []).filter(log => log.date && log.date.startsWith(currentSelectedMonth));
+      let mTotalHours = 0;
+      let mRevisits = 0;
+      let mLessons = 0;
+
+      monthlyLogs.forEach(log => {
+        mTotalHours += (log.hours || 0);
+        mRevisits += (log.revisit || 0);
+        mLessons += (log.lesson || 0);
+      });
+
+      const monthlyTotalHours = document.getElementById('monthlyTotalHours');
+      if (monthlyTotalHours) monthlyTotalHours.innerHTML = `${mTotalHours.toFixed(1)} <span class="text-xs font-normal">時間</span>`;
+
+      const monthlyRevisits = document.getElementById('monthlyRevisits');
+      if (monthlyRevisits) monthlyRevisits.innerHTML = `${mRevisits} <span class="text-xs font-normal">回</span>`;
+
+      const monthlyLessons = document.getElementById('monthlyLessons');
+      if (monthlyLessons) monthlyLessons.innerHTML = `${mLessons} <span class="text-xs font-normal">回</span>`;
+
+      // 今月の目標・カレンダー描画
+      const monthlyGoalInput = document.getElementById('monthlyGoalInput');
+      if (monthlyGoalInput) {
+        monthlyGoalInput.value = (appData.monthlyGoals && appData.monthlyGoals[currentSelectedMonth]) || '';
+      }
+
+      renderMonthlyCalendar(selectedYear, selectedMonth, monthlyLogs);
+      renderLogsTable(monthlyLogs);
+    }
+
+    function renderMonthlyCalendar(year, month, monthlyLogs) {
+      const calendarGrid = document.getElementById('monthlyCalendarGrid');
+      if (!calendarGrid) return;
+      calendarGrid.innerHTML = '';
+
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const firstDayIndex = (new Date(year, month - 1, 1).getDay() + 6) % 7; // 月曜始まり
+
+      // 空白セル
+      for (let i = 0; i < firstDayIndex; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'bg-transparent p-1';
+        calendarGrid.appendChild(emptyCell);
+      }
+
+      let totalTargetHours = 0;
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dayStr = String(day).padStart(2, '0');
+        const monthStr = String(month).padStart(2, '0');
+        const dateKey = `${year}-${monthStr}-${dayStr}`;
+
+        const goalHours = (appData.dailyGoalHours && appData.dailyGoalHours[dateKey]) || 0;
+        totalTargetHours += goalHours;
+
+        const cell = document.createElement('div');
+        cell.className = 'bg-nordic-bg rounded-xl p-1.5 flex flex-col items-center justify-between border border-nordic-sand/60 min-h-[52px]';
+
+        const dayNum = document.createElement('span');
+        dayNum.className = 'text-[10px] font-bold text-nordic-muted';
+        dayNum.textContent = day;
+
+        const targetInput = document.createElement('input');
+        targetInput.type = 'number';
+        targetInput.step = '0.5';
+        targetInput.min = '0';
+        targetInput.max = '24';
+        targetInput.placeholder = '-';
+        targetInput.value = goalHours > 0 ? goalHours : '';
+        targetInput.className = 'w-full text-center text-[11px] font-bold text-nordic-sage bg-white/80 rounded-lg border-0 py-0.5 outline-none focus:ring-1 focus:ring-nordic-sage';
+        targetInput.onchange = (e) => updateDailyGoal(dateKey, e.target.value);
+
+        cell.appendChild(dayNum);
+        cell.appendChild(targetInput);
+        calendarGrid.appendChild(cell);
+      }
+
+      // 着地見込み計算
+      let actualLoggedHours = 0;
+      monthlyLogs.forEach(l => actualLoggedHours += (l.hours || 0));
+      const projectedTotal = actualLoggedHours + totalTargetHours;
+
+      const projectedMonthlyTotal = document.getElementById('projectedMonthlyTotal');
+      if (projectedMonthlyTotal) {
+        projectedMonthlyTotal.innerHTML = `${projectedTotal.toFixed(1)} <span class="text-xs font-normal text-nordic-text">時間</span>`;
+      }
+    }
+
+    function renderLogsTable(monthlyLogs) {
+      const tbody = document.getElementById('logsTableBody');
+      const noLogsMessage = document.getElementById('noLogsMessage');
+      const entryCountLabel = document.getElementById('entryCountLabel');
+
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (entryCountLabel) entryCountLabel.textContent = `全 ${monthlyLogs.length} 件`;
+
+      if (monthlyLogs.length === 0) {
+        if (noLogsMessage) noLogsMessage.classList.remove('hidden');
+        return;
+      }
+
+      if (noLogsMessage) noLogsMessage.classList.add('hidden');
+
+      // 日付降順にソート
+      const sorted = [...monthlyLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      sorted.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-nordic-sand/30 transition-colors';
+
+        let irregularText = '-';
+        if (log.irregularType === 'consider') {
+          irregularText = `<span class="text-nordic-terracotta font-semibold">考慮 (-${log.irregularHours || 0}h)</span>`;
+        } else if (log.irregularType === 'add') {
+          irregularText = `<span class="text-nordic-sage font-semibold">追加 (+${log.irregularHours || 0}h)</span>`;
+        }
+
+        const timeRangeText = log.startTime && log.endTime ? `${log.startTime}~${log.endTime}` : '';
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-2">
+            <div class="font-bold text-xs text-nordic-text">${escapeHtml(log.date)}</div>
+            <div class="text-[10px] text-nordic-muted">${escapeHtml(timeRangeText)}</div>
+          </td>
+          <td class="py-2.5 px-2 text-center font-extrabold text-xs text-nordic-sage">${(log.hours || 0).toFixed(1)}h</td>
+          <td class="py-2.5 px-1 text-center text-xs text-nordic-muted">${log.revisit || 0} / ${log.lesson || 0}</td>
+          <td class="py-2.5 px-2 text-xs">${irregularText}</td>
+          <td class="py-2.5 px-1 text-right">
+            <button onclick="openLogEditModal('${log.id}')" aria-label="編集" class="p-1.5 bg-nordic-sand/60 hover:bg-nordic-sand rounded-xl text-nordic-text transition-colors">
+              <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function changeMonth(delta) {
+      if (!currentSelectedMonth) return;
+      const [y, m] = currentSelectedMonth.split('-').map(Number);
+      const dt = new Date(y, m - 1 + delta, 1);
+      const newY = dt.getFullYear();
+      const newM = String(dt.getMonth() + 1).padStart(2, '0');
+      currentSelectedMonth = `${newY}-${newM}`;
+      renderApp();
+    }
+
+    function onMonthPickerChange(val) {
+      if (!val) return;
+      currentSelectedMonth = val;
+      renderApp();
+    }
+
+    function calculateHours(startTime, endTime) {
+      if (!startTime || !endTime) return 0;
+      const [sh, sm] = startTime.split(':').map(Number);
+      const [eh, em] = endTime.split(':').map(Number);
+      let startMin = sh * 60 + sm;
+      let endMin = eh * 60 + em;
+      if (endMin < startMin) {
+        endMin += 24 * 60; // 日をまたぐ場合
+      }
+      return Math.max(0, (endMin - startMin) / 60);
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const date = document.getElementById('inputDate').value;
+      const startTime = document.getElementById('inputStartTime').value;
+      const endTime = document.getElementById('inputEndTime').value;
+      const revisit = parseInt(document.getElementById('inputRevisit').value, 10) || 0;
+      const lesson = parseInt(document.getElementById('inputLesson').value, 10) || 0;
+      const irregularType = document.getElementById('inputIrregularType').value;
+      const irregularHours = parseFloat(document.getElementById('inputIrregularHours').value) || 0;
+
+      let baseHours = calculateHours(startTime, endTime);
+      let totalHours = baseHours;
+      if (irregularType === 'add') {
+        totalHours += irregularHours;
+      }
+
+      const newLog = {
+        id: 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+        date,
+        startTime,
+        endTime,
+        hours: totalHours,
+        revisit,
+        lesson,
+        irregularType,
+        irregularHours
+      };
+
+      if (!appData.logs) appData.logs = [];
+      appData.logs.push(newLog);
+
+      if (date && date.substring(0, 7) !== currentSelectedMonth) {
+        currentSelectedMonth = date.substring(0, 7);
+      }
+
+      saveData();
+      renderApp();
+      showToast('記録を登録しました');
+    }
+
+    function saveMonthlyGoal() {
+      const val = document.getElementById('monthlyGoalInput').value;
+      if (!appData.monthlyGoals) appData.monthlyGoals = {};
+      appData.monthlyGoals[currentSelectedMonth] = val;
+      saveData();
+      showToast('今月の目標を保存しました');
+    }
+
+    function openGoalEditModal() {
+      document.getElementById('annualGoalInput').value = appData.annualGoal || 600;
+      document.getElementById('startMonthSelect').value = appData.startMonth || 9;
+      document.getElementById('endMonthSelect').value = appData.endMonth || 8;
+      document.getElementById('goalEditModal').classList.remove('hidden');
+    }
+
+    function closeGoalEditModal() {
+      document.getElementById('goalEditModal').classList.add('hidden');
+    }
+
+    function saveAnnualGoalSetting() {
+      const goal = parseInt(document.getElementById('annualGoalInput').value, 10);
+      const startM = parseInt(document.getElementById('startMonthSelect').value, 10);
+      const endM = parseInt(document.getElementById('endMonthSelect').value, 10);
+
+      if (goal && goal > 0) appData.annualGoal = goal;
+      appData.startMonth = startM;
+      appData.endMonth = endM;
+
+      saveData();
+      closeGoalEditModal();
+      renderApp();
+      showToast('設定を更新しました');
+    }
+
+    function openLogEditModal(id) {
+      const log = (appData.logs || []).find(l => l.id === id);
+      if (!log) return;
+
+      document.getElementById('editLogId').value = log.id;
+      document.getElementById('editInputDate').value = log.date || '';
+      document.getElementById('editInputStartTime').value = log.startTime || '';
+      document.getElementById('editInputEndTime').value = log.endTime || '';
+      document.getElementById('editInputRevisit').value = log.revisit || 0;
+      document.getElementById('editInputLesson').value = log.lesson || 0;
+      document.getElementById('editInputIrregularType').value = log.irregularType || 'none';
+      document.getElementById('editInputIrregularHours').value = log.irregularHours || '';
+
+      document.getElementById('logEditModal').classList.remove('hidden');
+    }
+
+    function closeLogEditModal() {
+      document.getElementById('logEditModal').classList.add('hidden');
+    }
+
+    function openSettingsModal() {
+      document.getElementById('settingsModal').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `pife_backup_${new Date().toISOString().slice(0,10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (imported && typeof imported === 'object') {
+            appData = { ...appData, ...imported };
+            saveData();
+            renderApp();
+            closeSettingsModal();
+            showToast('データを読み込みました');
+          }
+        } catch (err) {
+          showToast('ファイルの読み込みに失敗しました');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function showCustomConfirm(title, message, onConfirm) {
+      const modal = document.getElementById('confirmModal');
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+
+      const okBtn = document.getElementById('confirmOkBtn');
+      const cancelBtn = document.getElementById('confirmCancelBtn');
+
+      const closeHandler = () => {
+        modal.classList.add('hidden');
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
+
+      cancelBtn.onclick = closeHandler;
+      okBtn.onclick = () => {
+        closeHandler();
+        onConfirm();
+      };
+
+      modal.classList.remove('hidden');
+    }
+
+    function updateDailyGoal(dateStr, value) {
+      const hours = parseFloat(value);
+      if (!isNaN(hours) && hours > 0) {
+        appData.dailyGoalHours[dateStr] = hours;
+      } else {
+        delete appData.dailyGoalHours[dateStr];
+      }
+      saveData();
+      renderApp();
+    }
+
+    function handleEditFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('editLogId').value;
+      const logIndex = appData.logs.findIndex(l => l.id === id);
+      if (logIndex === -1) return;
+
+      const date = document.getElementById('editInputDate').value;
+      const startTime = document.getElementById('editInputStartTime').value;
+      const endTime = document.getElementById('editInputEndTime').value;
+      const revisit = parseInt(document.getElementById('editInputRevisit').value, 10) || 0;
+      const lesson = parseInt(document.getElementById('editInputLesson').value, 10) || 0;
+      const irregularType = document.getElementById('editInputIrregularType').value;
+      const irregularHours = parseFloat(document.getElementById('editInputIrregularHours').value) || 0;
+
+      let baseHours = calculateHours(startTime, endTime);
+      let totalHours = baseHours;
+      if (irregularType === 'add') {
+        totalHours += irregularHours;
+      }
+
+      appData.logs[logIndex] = {
+        id,
+        date,
+        startTime,
+        endTime,
+        hours: totalHours,
+        revisit,
+        lesson,
+        irregularType,
+        irregularHours
+      };
+
+      // 編集後に日付が別月に移動していた場合、その月へ自動追従
+      if (date && date.substring(0, 7) !== currentSelectedMonth) {
+        currentSelectedMonth = date.substring(0, 7);
+        const monthPicker = document.getElementById('monthPicker');
+        if (monthPicker) monthPicker.value = currentSelectedMonth;
+      }
+
+      saveData();
+      closeLogEditModal();
+      renderApp();
+      showToast('記録を更新しました');
+    }
+
+    function confirmDeleteFromEditModal() {
+      const id = document.getElementById('editLogId').value;
+      if (!id) return;
+
+      showCustomConfirm(
+        '記録の削除',
+        'この記録を削除してもよろしいですか？',
+        () => {
+          appData.logs = appData.logs.filter(log => log.id !== id);
+          saveData();
+          closeLogEditModal();
+          renderApp();
+          showToast('記録を削除しました');
+        }
+      );
+    }
+
+    function clearAllData() {
+      showCustomConfirm(
+        'データの全初期化',
+        'すべてのデータが初期化されます。本当に削除しますか？',
+        () => {
+          appData = { annualGoal: 600, startMonth: 9, endMonth: 8, monthlyGoals: {}, dailyGoalHours: {}, logs: [] };
+          saveData();
+          renderApp();
+          closeSettingsModal();
+          showToast('すべてのデータを初期化しました');
+        }
+      );
+    }
+
+    function showToast(msg) {
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-5 right-5 bg-nordic-text text-white text-xs font-medium px-4 py-3 rounded-2xl shadow-lg z-50 transition-all duration-300 transform translate-y-2 opacity-0 flex items-center space-x-2';
+      toast.innerHTML = `<i data-lucide="info" class="w-4 h-4 text-nordic-sage"></i><span>${escapeHtml(msg)}</span>`;
+      document.body.appendChild(toast);
+      if (window.lucide) lucide.createIcons();
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        }[m];
+      });
+    }
+  </script>
+</body>
+</html>
